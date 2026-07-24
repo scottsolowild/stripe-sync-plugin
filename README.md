@@ -28,8 +28,10 @@ that stays yours.
   export STRIPE_API_KEY=sk_live_...
   ```
 
-Trying it out? Use a **test** key (`sk_test_...`) and it all runs in Stripe's
-sandbox, no real money, nothing touching your live account.
+Grab the key from your Stripe dashboard:
+
+- **[Test keys](https://dashboard.stripe.com/test/apikeys)** (`sk_test_...`) run in Stripe's sandbox, no real money, nothing touching your live account. Start here.
+- **[Live keys](https://dashboard.stripe.com/apikeys)** (`sk_live_...`) create real charges. Switch to one once you have seen the flow.
 
 ## Use it
 
