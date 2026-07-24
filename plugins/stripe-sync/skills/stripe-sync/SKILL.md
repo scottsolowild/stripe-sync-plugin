@@ -47,7 +47,7 @@ they would do and change nothing until you pass `--yes`. Always run the plan,
 show it to the person, get a yes, then re-run with `--yes`. `check` is
 read-only unless you pass `--fix`, which only reconciles metadata.
 
-- **new** creates the price and link, tags `offer` (and `customer` when given), sets a plain-words description, and prints the URL. Paste it into the doc, then run `check`.
+- **new** creates the price and link, tags `offer` (and `customer` when given), sets a plain-words description, and prints the URL. Paste it into the doc, then run `check`. Add any extra metadata with repeatable `--meta key=val` (e.g. `--meta door=all-in --meta client=jordan`) to stamp your own attribution onto the link.
 - **close** deactivates every link whose metadata `offer` matches the slug.
 
 ## With the Stripe MCP and no key

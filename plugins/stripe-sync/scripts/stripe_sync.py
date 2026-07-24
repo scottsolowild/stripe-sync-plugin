@@ -29,7 +29,7 @@ Config (environment variables, all optional):
 Usage:
   stripe_sync.py check [--fix] [--fix-gated] [--dir PATH]
   stripe_sync.py new --offer SLUG --amount DOLLARS [--customer NAME]
-                     [--label TEXT] [--dry-run | --yes]
+                     [--meta KEY=VAL ...] [--label TEXT] [--dry-run | --yes]
   stripe_sync.py close --offer SLUG [--dir PATH] [--dry-run | --yes]
 """
 from __future__ import annotations
@@ -164,6 +164,12 @@ def cmd_new(args) -> int:
     meta = {"offer": args.offer}
     if args.customer:
         meta["customer"] = args.customer
+    for kv in args.meta or []:
+        k, _, v = kv.partition("=")
+        if k.strip() and v.strip():
+            meta[k.strip()] = v.strip()
+        else:
+            sys.exit(f"--meta expects KEY=VAL, got: {kv}")
     plan = [
         f'price: ${cents / 100:,.2f} {currency} ({label})',
         f'payment link: metadata {meta}, description "{label}"',
@@ -230,6 +236,8 @@ def main() -> int:
     n.add_argument("--amount", required=True, help="dollars, e.g. 5000 or 5000.00")
     n.add_argument("--customer")
     n.add_argument("--label")
+    n.add_argument("--meta", action="append", metavar="KEY=VAL",
+                   help="extra metadata to tag the link, repeatable (e.g. --meta door=all-in)")
     n.add_argument("--dry-run", dest="dry_run", action="store_true")
     n.add_argument("--yes", action="store_true", help="create it live")
     n.set_defaults(func=cmd_new)
