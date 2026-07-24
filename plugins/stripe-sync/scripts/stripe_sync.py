@@ -57,9 +57,9 @@ LOCKED_DIRS = _dirs("LOCKED_DIRS", "accepted")
 
 
 def api(path: str, data: dict | None = None, method: str | None = None) -> dict:
-    key = os.environ.get("STRIPE_API_KEY")
+    key = os.environ.get("STRIPE_API_KEY") or os.environ.get("CLAUDE_PLUGIN_OPTION_STRIPE_API_KEY")
     if not key:
-        sys.exit("STRIPE_API_KEY not set")
+        sys.exit("No Stripe key found. Set STRIPE_API_KEY, or enter your key when Claude Code prompts at install.")
     req = urllib.request.Request(
         f"{API}{path}",
         data=urllib.parse.urlencode(data, doseq=True).encode() if data is not None else None,

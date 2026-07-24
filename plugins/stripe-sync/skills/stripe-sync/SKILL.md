@@ -4,8 +4,10 @@ description: >
   Run your Stripe payment links from your offer docs, without the dashboard.
   Create a tagged link, check amounts against the docs, and deactivate an
   offer's links when it closes. Trigger on "/stripe-sync", "new stripe link",
-  "sync stripe", "check the payment links", "close the links for <offer>", or
-  after editing amounts or slugs in your offers folder.
+  "create a payment link", "a payment link for an offer", "an offer link for
+  <client>", "generate a link for <offer>", "sync stripe", "check the payment
+  links", "close the links for <offer>", or after editing amounts or slugs in
+  your offers folder.
 ---
 
 # stripe-sync
@@ -29,7 +31,10 @@ edit in place.
 
 ## With a Stripe key (the bundled script)
 
-`STRIPE_API_KEY` in the environment, then:
+The key comes from `STRIPE_API_KEY` in the environment, or from the key the
+user entered at install (the script also reads `CLAUDE_PLUGIN_OPTION_STRIPE_API_KEY`).
+If neither is set, the script says so; ask the user for their key (a test key,
+`sk_test_...`, to start) and have them export it, then:
 
 ```
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" check [--fix] [--dir path/to/offers]

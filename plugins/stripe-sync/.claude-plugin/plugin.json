@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "stripe-sync",
   "displayName": "Stripe Sync",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Run your Stripe payment links from your offer docs, without the dashboard: create a tagged link, check amounts against the docs, and close an offer's links when it ends.",
   "author": {
     "name": "Scott Solo",
@@ -17,5 +17,14 @@
     "offers",
     "sync",
     "workflow"
-  ]
+  ],
+  "userConfig": {
+    "stripe_api_key": {
+      "type": "string",
+      "title": "Stripe secret key",
+      "description": "Your Stripe secret key. Use a test key (sk_test_...) to try it safely in Stripe's sandbox. The plugin reads it as CLAUDE_PLUGIN_OPTION_STRIPE_API_KEY; if your setup does not pass it through, export STRIPE_API_KEY in your shell instead.",
+      "sensitive": true,
+      "required": false
+    }
+  }
 }
