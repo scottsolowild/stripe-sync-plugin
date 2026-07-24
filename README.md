@@ -24,7 +24,7 @@ or "check my payment links," or "close the links for spring-workshop."
 
 - **Makes links.** A price and a payment link at the amount you name, tagged with the offer and the customer, described in plain words. It prints the URL to drop in the doc.
 - **Tags every link.** The offer and customer ride in the link's metadata, so a payment in your Stripe dashboard reads as a person and an offer, not a bare number.
-- **Keeps amounts honest.** It checks that every link charges what its doc says, and flags any that drifted.
+- **Keeps amounts true.** It checks that every link charges what its doc says, and flags any that drifted.
 - **Closes links.** When an offer is done or declined, one word turns off all of its links.
 
 ## The one rule
