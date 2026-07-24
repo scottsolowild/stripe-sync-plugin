@@ -2,7 +2,7 @@
 name: stripe-sync
 description: >
   Run your Stripe payment links from your offer docs, without the dashboard.
-  Create a tagged link, keep amounts true to the docs, and deactivate an
+  Create a tagged link, check amounts against the docs, and deactivate an
   offer's links when it closes. Trigger on "/stripe-sync", "new stripe link",
   "sync stripe", "check the payment links", "close the links for <offer>", or
   after editing amounts or slugs in your offers folder.
@@ -68,5 +68,5 @@ without `--fix-gated`, because live money already changed hands there.
 
 ## Report
 
-Say what you did, straight. New links with their URL, closed links listed,
+Say what you did. New links with their URL, closed links listed,
 drift named per link. Never repriced a live link; that always becomes a new one.
