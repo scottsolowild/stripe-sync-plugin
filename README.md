@@ -5,7 +5,7 @@ Run your Stripe payment links from your offer docs, without the dashboard.
 If you keep your offers as markdown and pay through Stripe payment links, this
 plugin moves the link work into Claude Code. Make a link by asking for it,
 tagged so the Stripe dashboard tells you which offer and which customer each
-payment belongs to. Keep every link true to the doc that sells it. Turn an
+payment belongs to. Keep every link charging what its doc says. Turn an
 offer's links off when it closes. The Stripe tab stays shut.
 
 ## Install
@@ -24,7 +24,7 @@ or "check my payment links," or "close the links for spring-workshop."
 
 - **Makes links.** A price and a payment link at the amount you name, tagged with the offer and the customer, described in plain words. It prints the URL to drop in the doc.
 - **Tags every link.** The offer and customer ride in the link's metadata, so a payment in your Stripe dashboard reads as a person and an offer, not a bare number.
-- **Keeps amounts true.** It checks that every link charges what its doc says, and flags any that drifted.
+- **Checks the amount.** Every link should charge what its doc says, and it flags any that drifted.
 - **Closes links.** When an offer is done or declined, one word turns off all of its links.
 
 ## The one rule

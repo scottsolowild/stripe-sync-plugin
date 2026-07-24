@@ -10,7 +10,7 @@
     {
       "name": "stripe-sync",
       "source": "./plugins/stripe-sync",
-      "description": "Keep your Stripe payment links true to your offer docs.",
+      "description": "Keep your Stripe payment links matching your offer docs.",
       "category": "productivity"
     }
   ]

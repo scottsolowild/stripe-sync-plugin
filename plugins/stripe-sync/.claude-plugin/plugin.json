@@ -3,7 +3,7 @@
   "name": "stripe-sync",
   "displayName": "Stripe Sync",
   "version": "0.2.0",
-  "description": "Run your Stripe payment links from your offer docs, without the dashboard: create a tagged link, keep amounts true to the docs, and close an offer's links when it ends.",
+  "description": "Run your Stripe payment links from your offer docs, without the dashboard: create a tagged link, check amounts against the docs, and close an offer's links when it ends.",
   "author": {
     "name": "Scott Solo",
     "url": "https://github.com/scottsolowild"
