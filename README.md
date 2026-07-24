@@ -86,6 +86,10 @@ Config, all optional:
 No key on hand? With the Stripe MCP connected, the skill does the same work
 through the API tools, with the same ask-first gate.
 
+## Changelog
+
+Version history and the versioning contract are in [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT. Take it, change it, ship your own.
