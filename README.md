@@ -37,9 +37,9 @@ Grab the key from your Stripe dashboard:
 
 Say what you want in plain English. No commands to memorize:
 
-- "create a payment link for $5,000 for Jordan on the spring-workshop offer"
+- "create a payment link for $5,000 for Jordan on the crossroads offer"
 - "check my payment links"
-- "close the links for spring-workshop"
+- "close the links for crossroads"
 
 Claude runs the plugin for you. Anything that writes to Stripe (creating a
 link, closing links) shows you the plan first and waits for your yes. Checking
@@ -66,8 +66,8 @@ directly, or to wire `check` into a pre-commit hook or CI:
 
 ```
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py check
-STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py new --offer spring-workshop --amount 5000 --customer jordan
-STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py close --offer spring-workshop
+STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py new --offer crossroads --amount 5000 --customer jordan --meta door=all-in
+STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py close --offer crossroads
 ```
 
 `new` and `close` show a dry-run plan; add `--yes` to run it live. `check`

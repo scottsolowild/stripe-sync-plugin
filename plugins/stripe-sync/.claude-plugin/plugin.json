@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "stripe-sync",
   "displayName": "Stripe Sync",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Run your Stripe payment links from your offer docs, without the dashboard: create a tagged link, check amounts against the docs, and close an offer's links when it ends.",
   "author": {
     "name": "Scott Solo",
