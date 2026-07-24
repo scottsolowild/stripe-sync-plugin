@@ -1,12 +1,12 @@
 # stripe-sync
 
-Your offer docs are the source of truth. Stripe follows them.
+Run your Stripe payment links from your offer docs, without the dashboard.
 
-If you keep your offers as markdown and drop a Stripe payment link in each one,
-this plugin keeps the two honest: every link active, every price matching the
-doc, every link tagged with the offer it belongs to. It catches the quiet
-failure where you change a price in the doc but the old link keeps charging the
-old amount.
+If you keep your offers as markdown and pay through Stripe payment links, this
+plugin moves the link work into Claude Code. Make a link by asking for it,
+tagged so the Stripe dashboard tells you which offer and which customer each
+payment belongs to. Keep every link true to the doc that sells it. Turn an
+offer's links off when it closes. The Stripe tab stays shut.
 
 ## Install
 
@@ -17,47 +17,53 @@ In Claude Code:
 /plugin install stripe-sync@solo-plugins
 ```
 
-Then just say `/stripe-sync`, or "check my payment links."
+Then talk to it: "new stripe link for the spring workshop at $5,000 for Jordan,"
+or "check my payment links," or "close the links for spring-workshop."
 
-## What it checks
+## What it does
 
-For every `buy.stripe.com` link found in your offer docs:
+- **Makes links.** A price and a payment link at the amount you name, tagged with the offer and the customer, described in plain words. It prints the URL to drop in the doc.
+- **Tags every link.** The offer and customer ride in the link's metadata, so a payment in your Stripe dashboard reads as a person and an offer, not a bare number.
+- **Keeps amounts honest.** It checks that every link charges what its doc says, and flags any that drifted.
+- **Closes links.** When an offer is done or declined, one word turns off all of its links.
 
-1. **Active.** The link still works, and a closed offer's link is turned off.
-2. **Amount.** Stripe charges what the doc says. This works when you link the price as the anchor text, like `[$5,000](https://buy.stripe.com/xxxx)`.
-3. **Metadata.** The link carries the offer's slug, so the Stripe dashboard tells you whose money each payment is.
+## The one rule
 
-## The one rule worth internalizing
+**A price change is a new link, never an edit.** Stripe locks a link's price
+once it is live, and that is a feature. So when a price moves: mint a new link,
+swap the URL in the doc, close the old one. Anything you already sent keeps
+pointing at the right number. The plugin will not reprice a live link, on purpose.
 
-**An amount change means a new link, never an edit.** Stripe payment links do
-not let you change a price after the fact, and that is a feature. If you could,
-a PDF or a page you sent last month would silently start collecting the wrong
-number. So when a price changes: mint a new link, swap the URL in the doc,
-deactivate the old one. The plugin flags amount drift and refuses to auto-fix
-it, on purpose.
+## Anything that writes to Stripe asks first
+
+Creating a link and closing links both dry-run first. They show you exactly
+what they will do and change nothing until you confirm. Checking is read-only.
 
 ## Running it directly
 
-The skill runs the bundled script for you. To run it by hand:
+The skill runs the bundled script for you. By hand:
 
 ```
-STRIPE_API_KEY=sk_live_... python3 scripts/stripe_sync.py            # check
-STRIPE_API_KEY=sk_live_... python3 scripts/stripe_sync.py --fix      # reconcile metadata
+STRIPE_API_KEY=sk_live_... python3 scripts/stripe_sync.py check
+STRIPE_API_KEY=sk_live_... python3 scripts/stripe_sync.py new --offer spring-workshop --amount 5000 --customer jordan
+STRIPE_API_KEY=sk_live_... python3 scripts/stripe_sync.py close --offer spring-workshop
 ```
+
+`new` and `close` show a dry-run plan; add `--yes` to run it live. `check`
+reconciles metadata with `--fix`.
 
 Config, all optional:
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `OFFERS_DIR` (or `--dir`) | `offers` | Folder scanned for `*.md`. |
+| `OFFERS_DIR` (or `--dir`) | `offers` | Folder `check` scans for `*.md`. |
+| `STRIPE_CURRENCY` | `usd` | Currency for new links. |
+| `STRIPE_PRODUCT` | (per-offer) | Reuse one Stripe product id instead of creating one per offer. |
 | `CLOSED_DIRS` | `retired,closed` | Subfolders whose links should be off. An active one is drift. |
 | `LOCKED_DIRS` | `accepted` | Subfolders where drift is reported but never auto-fixed without `--fix-gated`. |
 
-It exits nonzero when it finds drift and you did not pass `--fix`, so it also
-works as a pre-commit hook or a CI check.
-
 No key on hand? With the Stripe MCP connected, the skill does the same work
-through the API tools.
+through the API tools, with the same ask-first gate.
 
 ## License
 
