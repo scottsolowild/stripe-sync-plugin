@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "solo-plugins",
+  "owner": {
+    "name": "Scott Solo",
+    "url": "https://github.com/scottsolowild"
+  },
+  "description": "Small, sharp Claude Code plugins for people running offers.",
+  "plugins": [
+    {
+      "name": "stripe-sync",
+      "source": "./plugins/stripe-sync",
+      "description": "Keep your Stripe payment links true to your offer docs.",
+      "category": "productivity"
+    }
+  ]
+}

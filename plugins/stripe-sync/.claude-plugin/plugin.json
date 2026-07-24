@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "stripe-sync",
+  "displayName": "Stripe Sync",
+  "version": "0.1.0",
+  "description": "Keep your Stripe payment links true to your offer docs: active status, amount, and metadata, with the discipline that an amount change means a new link, never an edit.",
+  "author": {
+    "name": "Scott Solo",
+    "url": "https://github.com/scottsolowild"
+  },
+  "homepage": "https://github.com/scottsolowild/stripe-sync-plugin",
+  "repository": "https://github.com/scottsolowild/stripe-sync-plugin",
+  "license": "MIT",
+  "keywords": ["stripe", "payments", "offers", "sync", "workflow"]
+}
