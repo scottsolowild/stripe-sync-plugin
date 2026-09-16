@@ -40,6 +40,7 @@ Say what you want in plain English. No commands to memorize:
 - "create a payment link for $5,000 for Jordan on the crossroads offer"
 - "check my payment links"
 - "close the links for crossroads"
+- "credit the $250 they already paid toward the container"
 
 Claude runs the plugin for you. Anything that writes to Stripe (creating a
 link, closing links) shows you the plan first and waits for your yes. Checking
@@ -51,6 +52,7 @@ is read-only. You paste the URL it gives you into your offer doc.
 - **Tags every link.** The offer and customer ride in the link's metadata, so a payment in your Stripe dashboard reads as a person and an offer, not a bare number.
 - **Checks the amount.** Every link should charge what its doc says, and it flags any that drifted.
 - **Closes links.** When an offer is done or declined, one word turns off all of its links.
+- **Credits what they already paid.** A paid intro that comes off a larger offer is subtracted at mint time, and the payment it spent is stamped on the new link, so the same money cannot come off twice. It also prints the three lines for your offer page (full price, the credit and its date, what is owed today), because a payment link charges one number and cannot carry a pre-applied coupon.
 
 ## The one rule
 
@@ -68,6 +70,8 @@ directly, or to wire `check` into a pre-commit hook or CI:
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py check
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py new --offer crossroads --amount 5000 --customer jordan --meta door=all-in
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py close --offer crossroads
+STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py credit jordan
+STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py new --offer crossroads --amount 5000 --credit-client jordan
 ```
 
 `new` and `close` show a dry-run plan; add `--yes` to run it live. `check`
@@ -80,6 +84,8 @@ Config, all optional:
 | `OFFERS_DIR` (or `--dir`) | `offers` | Folder `check` scans for `*.md`. |
 | `STRIPE_CURRENCY` | `usd` | Currency for new links. |
 | `STRIPE_PRODUCT` | (per-offer) | Reuse one Stripe product id instead of creating one per offer. |
+| `STRIPE_CREDIT_OFFER` | `design` | Offer slug whose payments credit toward a bigger offer. |
+| `STRIPE_CREDIT_WINDOW_DAYS` | `30` | How long a payment stays creditable. `0` for no window. |
 | `CLOSED_DIRS` | `retired,closed` | Subfolders whose links should be off. An active one is drift. |
 | `LOCKED_DIRS` | `accepted` | Subfolders where drift is reported but never auto-fixed without `--fix-gated`. |
 
