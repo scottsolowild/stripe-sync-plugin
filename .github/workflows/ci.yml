@@ -1,0 +1,48 @@
+name: checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Cancel a superseded run when new commits land, so queues don't pile up.
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      # python3 ships on ubuntu-latest and every check below uses only the
+      # standard library, so checkout is the one setup step.
+      # Keep actions on a node24 major. A node20 one warns on every run.
+      - uses: actions/checkout@v5
+      - name: stripe_sync.py compiles
+        run: python3 -m py_compile plugins/stripe-sync/scripts/stripe_sync.py
+      # py_compile only compiles the script, and --help runs the code that
+      # builds the parser. An option added twice passes the step above and
+      # fails here.
+      - name: stripe_sync.py --help exits 0
+        run: python3 plugins/stripe-sync/scripts/stripe_sync.py --help
+      - name: Manifests parse as JSON
+        run: |
+          for f in .claude-plugin/marketplace.json plugins/stripe-sync/.claude-plugin/plugin.json; do
+            python3 -m json.tool "$f" > /dev/null || { echo "$f does not parse as JSON" >&2; exit 1; }
+          done
+      # The version is typed by hand into two files at each release.
+      - name: plugin.json version matches CHANGELOG.md
+        run: |
+          python3 - <<'EOF'
+          import json, re, sys
+          with open("plugins/stripe-sync/.claude-plugin/plugin.json") as f:
+              version = json.load(f).get("version")
+          with open("CHANGELOG.md") as f:
+              heading = re.search(r"^## \[(\d+\.\d+\.\d+[^\]]*)\]", f.read(), re.M)
+          newest = heading.group(1) if heading else None
+          if version != newest:
+              sys.exit(f"plugin.json version is {version}, and the first ## [x.y.z] heading in CHANGELOG.md is {newest}. Bump both in the same commit.")
+          print(f"plugin.json and CHANGELOG.md both say {version}.")
+          EOF
