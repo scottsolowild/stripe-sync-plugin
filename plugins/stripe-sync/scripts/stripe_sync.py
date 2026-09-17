@@ -76,6 +76,10 @@ AMOUNT_RE = re.compile(r"^\s*\$?([\d,]+(?:\.\d{1,2})?)\s*$")
 # A slug goes straight into a Stripe search query, so it is validated rather
 # than escaped: anything outside this shape is refused before the call.
 SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+# Stripe swaps this for the checkout session id on the way out. A booking page
+# that opens only for a paid arrival reads it, so a redirect without it lands
+# a man who has just paid back on the page that asks him to pay.
+SESSION_VAR = "{CHECKOUT_SESSION_ID}"
 
 
 def _dirs(name: str, default: str) -> set[str]:
@@ -352,6 +356,14 @@ def cmd_new(args) -> int:
     ]
     if args.redirect:
         plan.append(f'after payment: redirect to {args.redirect}')
+        if SESSION_VAR not in args.redirect:
+            # --yes skips the plan, so this one goes to stderr on both paths.
+            print(
+                f"NOTE: the redirect URL carries no {SESSION_VAR}. A booking page "
+                "that opens only for a paid arrival reads it, so this sends him "
+                "back to the offer page after he pays.",
+                file=sys.stderr,
+            )
     if credited:
         plan.append("page copy: " + " ".join(credit_lines(credited["gross"], credited["taken"], cents)))
     if args.dry_run or not args.yes:
