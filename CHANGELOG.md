@@ -8,6 +8,11 @@ keys written onto a link (`offer`, `customer`, and any `--meta` you rely on). A
 adds capability; a **patch** fixes without touching the contract. Pre-1.0, the
 contract is not yet frozen, so expect the shape to move.
 
+## [0.5.3] - 2026-09-17
+
+### Fixed
+- The docs now say `STRIPE_CREDIT_OFFER` defaults to `plan`. The default moved to `plan` in 0.5.2 and three places still said `design`: the README config table, the module docstring, and the skill's `credit` line. The skill line is the one that reached you, since Claude reads it while the skill runs and would state the old default back as fact.
+
 ## [0.5.2] - 2026-09-17
 
 ### Changed
