@@ -24,7 +24,7 @@ Your offer docs are the source of truth. Stripe follows them. Four commands:
 The credit is arithmetic, never a coupon (business/the-close.md). A rung that
 is a piece of the container credits in full, so the container link is minted at
 the net: `new --offer three-months --amount 6000 --credit-client <slug>` finds
-the paid design sessions, subtracts them, and tags the new link with
+the paid plan sessions, subtracts them, and tags the new link with
 credit_from=<payment intent ids>. That tag is the ledger. It is what stops the
 same $250 being credited twice, and it is why no promotion code is involved:
 the buyer sees one number rather than a discount.
@@ -40,7 +40,7 @@ Config (environment variables, all optional):
   STRIPE_PRODUCT   reuse one Stripe product id for new links, instead of
                    creating a product per offer.
   STRIPE_CREDIT_OFFER        offer slug that credits toward a container
-                             (default: design).
+                             (default: plan).
   STRIPE_CREDIT_WINDOW_DAYS  how long a payment stays creditable
                              (default: 30; 0 means no window).
   CLOSED_DIRS      subfolders whose links should be off (default: retired,closed).
