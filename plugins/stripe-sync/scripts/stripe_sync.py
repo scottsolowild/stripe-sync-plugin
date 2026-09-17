@@ -14,7 +14,7 @@ Your offer docs are the source of truth. Stripe follows them. Four commands:
           declined. Dry-run first; a live close needs --yes.
 
   credit  Show what a client has already paid toward a container: every
-          succeeded design-session payment tagged to them, whether it is
+          succeeded plan payment tagged to them, whether it is
           still inside the window, and whether another link already spent
           it. Read-only, except --tag. The open page sells to whoever
           clicks, so its payment lands with no client slug: --unfiled lists
@@ -144,7 +144,7 @@ def links_for_offer(slug: str) -> list[dict]:
 
 
 def credit_offer() -> str:
-    return os.environ.get("STRIPE_CREDIT_OFFER", "design")
+    return os.environ.get("STRIPE_CREDIT_OFFER", "plan")
 
 
 def credit_window_days() -> int:
