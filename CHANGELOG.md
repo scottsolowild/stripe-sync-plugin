@@ -8,6 +8,11 @@ keys written onto a link (`offer`, `customer`, and any `--meta` you rely on). A
 adds capability; a **patch** fixes without touching the contract. Pre-1.0, the
 contract is not yet frozen, so expect the shape to move.
 
+## [0.5.1] - 2026-09-17
+
+### Changed
+- `new --redirect URL` says so when the URL carries no `{CHECKOUT_SESSION_ID}`. Stripe swaps that template for the checkout session id on the way out, and a landing page that opens only for a paid arrival reads it. Without it, a buyer who has just paid arrives at a page that asks him to pay. The note prints on the dry run and on the live create, and a URL that carries the template stays quiet.
+
 ## [0.5.0] - 2026-09-16
 
 ### Added
