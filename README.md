@@ -84,7 +84,7 @@ Config, all optional:
 | `OFFERS_DIR` (or `--dir`) | `offers` | Folder `check` scans for `*.md`. |
 | `STRIPE_CURRENCY` | `usd` | Currency for new links. |
 | `STRIPE_PRODUCT` | (per-offer) | Reuse one Stripe product id instead of creating one per offer. |
-| `STRIPE_CREDIT_OFFER` | `design` | Offer slug whose payments credit toward a bigger offer. |
+| `STRIPE_CREDIT_OFFER` | `plan` | Offer slug whose payments credit toward a bigger offer. |
 | `STRIPE_CREDIT_WINDOW_DAYS` | `30` | How long a payment stays creditable. `0` for no window. |
 | `CLOSED_DIRS` | `retired,closed` | Subfolders whose links should be off. An active one is drift. |
 | `LOCKED_DIRS` | `accepted` | Subfolders where drift is reported but never auto-fixed without `--fix-gated`. |

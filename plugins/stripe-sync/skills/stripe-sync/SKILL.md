@@ -53,7 +53,7 @@ read-only unless you pass `--fix`, which only reconciles metadata.
 
 - **new** creates the price and link, tags `offer` (and `customer` when given), sets a plain-words description, and prints the URL. Paste it into the doc, then run `check`. Add any extra metadata with repeatable `--meta key=val` (e.g. `--meta door=all-in --meta client=jordan`) to stamp your own attribution onto the link.
 - **close** deactivates every link whose metadata `offer` matches the slug.
-- **credit** reads every succeeded payment tagged `client=<slug>` under the crediting offer (`STRIPE_CREDIT_OFFER`, default `design`) and says which are still inside the window and which a link already spent. `--tag <payment id>` files a payment onto a person, for a link that sold to whoever clicked, and `--unfiled` lists those.
+- **credit** reads every succeeded payment tagged `client=<slug>` under the crediting offer (`STRIPE_CREDIT_OFFER`, default `plan`) and says which are still inside the window and which a link already spent. `--tag <payment id>` files a payment onto a person, for a link that sold to whoever clicked, and `--unfiled` lists those.
 
 ## With the Stripe MCP and no key
 
