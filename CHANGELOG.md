@@ -8,6 +8,11 @@ keys written onto a link (`offer`, `customer`, and any `--meta` you rely on). A
 adds capability; a **patch** fixes without touching the contract. Pre-1.0, the
 contract is not yet frozen, so expect the shape to move.
 
+## [0.5.2] - 2026-09-17
+
+### Changed
+- `STRIPE_CREDIT_OFFER` now defaults to `plan` instead of `design`, following a rename in the offer it was written for. Set the variable to your own crediting offer's slug either way: the default is one person's name for the thing, and the credit lookup matches payments on it, so a payment stamped with the old slug is invisible to a lookup for the new one.
+
 ## [0.5.1] - 2026-09-17
 
 ### Changed
