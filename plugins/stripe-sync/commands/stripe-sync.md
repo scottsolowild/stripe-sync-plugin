@@ -7,7 +7,7 @@ without opening the dashboard:
 
 - **new** a tagged price and link at an amount (`new --offer <slug> --amount <dollars> [--customer <name>] [--meta key=val ...]`).
 - **check** every link against the docs: active, amount matches, tagged right.
-- **close** an offer's links when it is done (`close --offer <slug>`).
+- **close** an offer's links when it is done (`close --offer <slug>`), or one person's link on it (`close --offer <slug> --client <slug>`).
 
 Rules:
 - Anything that writes to Stripe dry-runs first. Show the plan, get a yes, then run with `--yes`.
