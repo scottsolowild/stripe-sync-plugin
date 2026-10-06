@@ -11,7 +11,9 @@ Your offer docs are the source of truth. Stripe follows them. Four commands:
           doc. Dry-run first; a live create needs --yes.
 
   close   Deactivate every link tagged to an offer, for when it is done or
-          declined. Dry-run first; a live close needs --yes.
+          declined. --client and --door narrow it to the links carrying that
+          tag too, so one person's link closes and an offer's shared links
+          stay up. Dry-run first; a live close needs --yes.
 
   credit  Show what a client has already paid toward a container: every
           succeeded plan payment tagged to them, whether it is
@@ -53,7 +55,8 @@ Usage:
                      [--credit-client SLUG] [--credit-offer SLUG]
                      [--credit-window DAYS] [--credit-force]
                      [--dry-run | --yes]
-  stripe_sync.py close --offer SLUG [--dir PATH] [--dry-run | --yes]
+  stripe_sync.py close --offer SLUG [--client SLUG] [--door SLUG]
+                       [--dir PATH] [--dry-run | --yes]
   stripe_sync.py credit [CLIENT] [--unfiled] [--tag PAYMENT_ID]
                         [--credit-offer SLUG] [--credit-window DAYS]
 """
@@ -446,21 +449,28 @@ def cmd_credit(args) -> int:
 
 
 def cmd_close(args) -> int:
-    links = links_for_offer(args.offer)
-    active = [l for l in links if l["active"]]
+    # One offer can hold many people's links and a shared one besides, so a
+    # filter narrows the close to the links that carry every tag asked for.
+    want = {k: v for k, v in (("offer", args.offer), ("client", args.client),
+                              ("door", args.door)) if v}
+    scope = " ".join(f"{k}={v}" for k, v in want.items())
+    active = [l for l in links_for_offer(args.offer) if l["active"] and all(
+        (l.get("metadata") or {}).get(k) == v for k, v in want.items())]
     if not active:
-        print(f"No active links tagged offer={args.offer}. Nothing to close.")
+        print(f"No active links tagged {scope}. Nothing to close.")
         return 0
     if args.dry_run or not args.yes:
-        print(f"DRY RUN, would deactivate {len(active)} link(s) for offer={args.offer}:")
+        print(f"DRY RUN, would deactivate {len(active)} link(s) for {scope}:")
         for l in active:
-            print(f'  {l["url"]}')
+            meta = l.get("metadata") or {}
+            tags = " ".join(f"{k}={meta[k]}" for k in ("client", "door") if meta.get(k))
+            print(f'  {l["url"]}' + (f"  {tags}" if tags else ""))
         if not args.yes:
             print("\nNothing changed. Re-run with --yes to deactivate them live.")
         return 0
     for l in active:
         api(f'/payment_links/{l["id"]}', {"active": "false"})
-        print(f'CLOSED   {args.offer}: {l["url"]}')
+        print(f'CLOSED   {scope}: {l["url"]}')
     return 0
 
 
@@ -497,6 +507,10 @@ def main() -> int:
 
     x = sub.add_parser("close", help="deactivate an offer's links")
     x.add_argument("--offer", required=True)
+    x.add_argument("--client", metavar="SLUG",
+                   help="close only the links also tagged client=SLUG (one person's link)")
+    x.add_argument("--door", metavar="SLUG",
+                   help="close only the links also tagged door=SLUG")
     x.add_argument("--dir")
     x.add_argument("--dry-run", dest="dry_run", action="store_true")
     x.add_argument("--yes", action="store_true", help="deactivate live")

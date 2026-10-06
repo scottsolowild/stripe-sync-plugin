@@ -51,7 +51,7 @@ is read-only. You paste the URL it gives you into your offer doc.
 - **Makes links.** A price and a payment link at the amount you name, tagged with the offer and the customer, described in plain words.
 - **Tags every link.** The offer and customer ride in the link's metadata, so a payment in your Stripe dashboard reads as a person and an offer, not a bare number.
 - **Checks the amount.** Every link should charge what its doc says, and it flags any that drifted.
-- **Closes links.** When an offer is done or declined, one word turns off all of its links.
+- **Closes links.** When an offer is done or declined, one word turns off all of its links. Name a client and only their link goes.
 - **Credits what they already paid.** A paid intro that comes off a larger offer is subtracted at mint time, and the payment it spent is stamped on the new link, so the same money cannot come off twice. It also prints the three lines for your offer page (full price, the credit and its date, what is owed today), because a payment link charges one number and cannot carry a pre-applied coupon.
 
 ## The one rule
@@ -70,6 +70,7 @@ directly, or to wire `check` into a pre-commit hook or CI:
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py check
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py new --offer crossroads --amount 5000 --customer jordan --meta door=all-in
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py close --offer crossroads
+STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py close --offer crossroads --client jordan
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py credit jordan
 STRIPE_API_KEY=sk_test_... python3 scripts/stripe_sync.py new --offer crossroads --amount 5000 --credit-client jordan
 ```

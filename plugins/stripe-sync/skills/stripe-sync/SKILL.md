@@ -42,6 +42,7 @@ If neither is set, the script says so; ask the user for their key (a test key,
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" check [--fix] [--dir path/to/offers]
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" new --offer spring-workshop --amount 5000 --customer jordan
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" close --offer spring-workshop
+python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" close --offer spring-workshop --client jordan
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" credit jordan
 python3 "${CLAUDE_PLUGIN_ROOT}/scripts/stripe_sync.py" new --offer spring-intensive --amount 6000 --credit-client jordan
 ```
@@ -52,7 +53,7 @@ show it to the person, get a yes, then re-run with `--yes`. `check` is
 read-only unless you pass `--fix`, which only reconciles metadata.
 
 - **new** creates the price and link, tags `offer` (and `customer` when given), sets a plain-words description, and prints the URL. Paste it into the doc, then run `check`. Add any extra metadata with repeatable `--meta key=val` (e.g. `--meta door=all-in --meta client=jordan`) to stamp your own attribution onto the link.
-- **close** deactivates every link whose metadata `offer` matches the slug.
+- **close** deactivates every link whose metadata `offer` matches the slug. When one offer holds a link per customer, add `--client <slug>` (or `--door <slug>`) and only the links also carrying that tag close, so one person's link goes and the offer's other links stay up.
 - **credit** reads every succeeded payment tagged `client=<slug>` under the crediting offer (`STRIPE_CREDIT_OFFER`, default `plan`) and says which are still inside the window and which a link already spent. `--tag <payment id>` files a payment onto a person, for a link that sold to whoever clicked, and `--unfiled` lists those.
 
 ## With the Stripe MCP and no key

@@ -8,6 +8,12 @@ keys written onto a link (`offer`, `customer`, and any `--meta` you rely on). A
 adds capability; a **patch** fixes without touching the contract. Pre-1.0, the
 contract is not yet frozen, so expect the shape to move.
 
+## [0.6.0] - 2026-10-06
+
+### Added
+- `close --client <slug>` and `close --door <slug>` close only the links that also carry that tag. One offer can hold a link per customer and a shared link besides, all tagged with the same `offer`, so `close --offer <slug>` alone turned off every one of them. Now a person's link closes on its own and the rest stay up. A bare `close --offer` still closes the lot, for an offer that is done.
+- The `close` dry run prints each link's `client` and `door` tags beside its URL, so the plan shows whose link goes before you pass `--yes`.
+
 ## [0.5.3] - 2026-09-17
 
 ### Fixed
