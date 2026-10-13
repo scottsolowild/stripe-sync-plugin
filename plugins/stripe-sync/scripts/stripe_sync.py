@@ -8,7 +8,9 @@ Your offer docs are the source of truth. Stripe follows them. Four commands:
 
   new     Create a price and a payment link at an amount, tagged with the
           offer (and customer, if given), and print the URL to drop in the
-          doc. Dry-run first; a live create needs --yes.
+          doc. --hold makes the link a hold rather than a charge, for a
+          price that waits on a count. --note puts a line beside the pay
+          button. Dry-run first; a live create needs --yes.
 
   close   Deactivate every link tagged to an offer, for when it is done or
           declined. --client and --door narrow it to the links carrying that
@@ -22,6 +24,16 @@ Your offer docs are the source of truth. Stripe follows them. Four commands:
           clicks, so its payment lands with no client slug: --unfiled lists
           those, and `credit <slug> --tag <payment id>` files one onto a
           person so the container can credit it.
+
+A hold authorizes the card at the link's amount and charges nothing. You then
+capture each payment in the dashboard at that amount or less, and Stripe
+releases the rest, or you cancel it and the buyer pays nothing. Capture once:
+a partial capture cannot be topped up later. An online card hold lapses after
+7 days, so the charge date sits inside a week of the first hold. An ACH debit
+cannot be held, so a hold link takes cards alone. Link's Bank option still
+shows at checkout, and Stripe holds that one too. Checkout and the bank both
+show the full amount, which is what --note is for: the line beside the button
+says what the hold becomes.
 
 The credit is arithmetic, never a coupon (business/the-close.md). A rung that
 is a piece of the container credits in full, so the container link is minted at
@@ -54,7 +66,7 @@ Usage:
                      [--meta KEY=VAL ...] [--label TEXT] [--redirect URL]
                      [--credit-client SLUG] [--credit-offer SLUG]
                      [--credit-window DAYS] [--credit-force]
-                     [--dry-run | --yes]
+                     [--hold] [--note TEXT] [--dry-run | --yes]
   stripe_sync.py close --offer SLUG [--client SLUG] [--door SLUG]
                        [--dir PATH] [--dry-run | --yes]
   stripe_sync.py credit [CLIENT] [--unfiled] [--tag PAYMENT_ID]
@@ -367,6 +379,11 @@ def cmd_new(args) -> int:
                 "back to the offer page after he pays.",
                 file=sys.stderr,
             )
+    if args.hold:
+        plan.append("capture: a hold, cards only. Capture or cancel each payment "
+                    "within 7 days, or Stripe cancels it")
+    if args.note:
+        plan.append(f'beside the button: "{args.note}"')
     if credited:
         plan.append("page copy: " + " ".join(credit_lines(credited["gross"], credited["taken"], cents)))
     if args.dry_run or not args.yes:
@@ -394,8 +411,14 @@ def cmd_new(args) -> int:
     if args.redirect:
         link_data["after_completion[type]"] = "redirect"
         link_data["after_completion[redirect][url]"] = args.redirect
+    if args.hold:
+        link_data["payment_intent_data[capture_method]"] = "manual"
+        link_data["payment_method_types[0]"] = "card"
+    if args.note:
+        link_data["custom_text[submit][message]"] = args.note
     link = api("/payment_links", link_data)
-    print(f'CREATED  {args.offer}: [${cents // 100:,}]({link["url"]})')
+    held = " hold" if args.hold else ""
+    print(f'CREATED  {args.offer}: [${cents // 100:,}{held}]({link["url"]})')
     if credited:
         print("\nFor the page, above the button, so he reads the credit come off:\n")
         for line in credit_lines(credited["gross"], credited["taken"], cents):
@@ -501,6 +524,10 @@ def main() -> int:
                    help=f"days a payment stays creditable (default: {credit_window_days()}; 0 for no window)")
     n.add_argument("--credit-force", dest="credit_force", action="store_true",
                    help="credit a payment another link already spent (a declined offer whose link you closed)")
+    n.add_argument("--hold", action="store_true",
+                   help="hold the amount on the card and charge nothing until you capture it (cards only, 7 days)")
+    n.add_argument("--note", metavar="TEXT",
+                   help="a line beside the pay button (with --hold, what the hold becomes)")
     n.add_argument("--dry-run", dest="dry_run", action="store_true")
     n.add_argument("--yes", action="store_true", help="create it live")
     n.set_defaults(func=cmd_new)
