@@ -53,6 +53,7 @@ show it to the person, get a yes, then re-run with `--yes`. `check` is
 read-only unless you pass `--fix`, which only reconciles metadata.
 
 - **new** creates the price and link, tags `offer` (and `customer` when given), sets a plain-words description, and prints the URL. Paste it into the doc, then run `check`. Add any extra metadata with repeatable `--meta key=val` (e.g. `--meta door=all-in --meta client=jordan`) to stamp your own attribution onto the link.
+- **new --hold** makes the link a hold for a price that waits on a count: one link at the top tier, and the card is authorized while nothing is charged. When the count lands, capture each payment in the dashboard at the tier amount, or cancel it, inside 7 days. `--note` puts the rule beside the pay button, since checkout and the bank both show the full amount.
 - **close** deactivates every link whose metadata `offer` matches the slug. When one offer holds a link per customer, add `--client <slug>` (or `--door <slug>`) and only the links also carrying that tag close, so one person's link goes and the offer's other links stay up.
 - **credit** reads every succeeded payment tagged `client=<slug>` under the crediting offer (`STRIPE_CREDIT_OFFER`, default `plan`) and says which are still inside the window and which a link already spent. `--tag <payment id>` files a payment onto a person, for a link that sold to whoever clicked, and `--unfiled` lists those.
 
