@@ -8,6 +8,12 @@ keys written onto a link (`offer`, `customer`, and any `--meta` you rely on). A
 adds capability; a **patch** fixes without touching the contract. Pre-1.0, the
 contract is not yet frozen, so expect the shape to move.
 
+## [0.7.0] - 2026-10-16
+
+### Added
+- `new --methods LIST` narrows what a link takes. `--methods us_bank_account` is a link that takes a bank debit alone, which spares a five-figure payment the card fee: about $870 on $30,000 by card, against 0.8% capped at $5 by bank. A bank debit settles in up to four business days, and Stripe refunds it in full only, so the dry run says so. A link refuses `customer_balance`, since Stripe takes a bank transfer on an invoice and never on a link, and a hold still takes cards alone.
+- `invoice` creates a Stripe invoice for a payment a link cannot take, and prints its hosted page. It finds or creates the customer by `--email`, asks for US bank transfer details and a bank debit by default (`--methods` changes that), adds the one line to that invoice alone, and finalizes it. The page gives the buyer an account and routing number of his own for a wire or an ACH credit, and Stripe marks the invoice paid when the money lands. A bank transfer costs 0.5% capped at $5 and refunds in part. `--send` has Stripe email it too. Dry-run first, and a live create needs `--yes`. It needs Bank transfers on in your payment method settings, and Customers and Invoices write on a restricted key.
+
 ## [0.6.0] - 2026-10-06
 
 ### Added
