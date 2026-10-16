@@ -1,6 +1,6 @@
 """Run your Stripe payment links from your offer docs, without the dashboard.
 
-Your offer docs are the source of truth. Stripe follows them. Four commands:
+Your offer docs are the source of truth. Stripe follows them. Five commands:
 
   check   Verify every buy.stripe.com link in your docs against Stripe:
           active, charging what the doc says, tagged to the right offer.
@@ -10,7 +10,15 @@ Your offer docs are the source of truth. Stripe follows them. Four commands:
           offer (and customer, if given), and print the URL to drop in the
           doc. --hold makes the link a hold rather than a charge, for a
           price that waits on a count. --note puts a line beside the pay
-          button. Dry-run first; a live create needs --yes.
+          button. --methods narrows what the link takes, so
+          `--methods us_bank_account` is a link that takes a bank debit
+          alone. Dry-run first; a live create needs --yes.
+
+  invoice Create a Stripe invoice for a payment a link cannot take, and
+          print its page. By default the page gives the buyer an account and
+          routing number of his own to send a wire or an ACH credit to, and
+          a bank debit beside it. --send has Stripe email it too. Dry-run
+          first; a live create needs --yes.
 
   close   Deactivate every link tagged to an offer, for when it is done or
           declined. --client and --door narrow it to the links carrying that
@@ -34,6 +42,15 @@ cannot be held, so a hold link takes cards alone. Link's Bank option still
 shows at checkout, and Stripe holds that one too. Checkout and the bank both
 show the full amount, which is what --note is for: the line beside the button
 says what the hold becomes.
+
+A five-figure payment is where the method matters. A card costs about 3%, so
+$30,000 costs about $870. A bank debit (us_bank_account) costs 0.8% capped at
+$5, settles in up to four business days, and refunds in full only. A buyer
+can dispute a debit from a personal account for 60 days. A bank transfer
+(customer_balance) costs 0.5% capped at $5. The buyer pushes it from his own
+bank, by wire or ACH, to an account number Stripe gives him, and Stripe
+matches it to the invoice. It refunds in part as well as in full. A payment
+link cannot take a bank transfer, which is why invoice exists.
 
 The credit is arithmetic, never a coupon (business/the-close.md). A rung that
 is a piece of the container credits in full, so the container link is minted at
@@ -66,7 +83,12 @@ Usage:
                      [--meta KEY=VAL ...] [--label TEXT] [--redirect URL]
                      [--credit-client SLUG] [--credit-offer SLUG]
                      [--credit-window DAYS] [--credit-force]
-                     [--hold] [--note TEXT] [--dry-run | --yes]
+                     [--hold] [--note TEXT] [--methods LIST]
+                     [--dry-run | --yes]
+  stripe_sync.py invoice --offer SLUG --amount DOLLARS --email EMAIL
+                         [--name NAME] [--meta KEY=VAL ...] [--label TEXT]
+                         [--methods LIST] [--days-due N] [--memo TEXT]
+                         [--send] [--dry-run | --yes]
   stripe_sync.py close --offer SLUG [--client SLUG] [--door SLUG]
                        [--dir PATH] [--dry-run | --yes]
   stripe_sync.py credit [CLIENT] [--unfiled] [--tag PAYMENT_ID]
@@ -95,6 +117,41 @@ SLUG_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 # that opens only for a paid arrival reads it, so a redirect without it lands
 # a man who has just paid back on the page that asks him to pay.
 SESSION_VAR = "{CHECKOUT_SESSION_ID}"
+# A bank transfer. Stripe takes it on an invoice and refuses it on a link.
+TRANSFER = "customer_balance"
+INVOICE_METHODS = f"{TRANSFER},us_bank_account"
+
+
+def to_cents(amount) -> int:
+    return round(float(str(amount).replace(",", "").lstrip("$")) * 100)
+
+
+def method_list(raw: str | None) -> list[str]:
+    return [m.strip() for m in (raw or "").split(",") if m.strip()]
+
+
+def method_notes(picked: list[str]) -> list[str]:
+    notes = []
+    if "us_bank_account" in picked:
+        notes.append("a bank debit settles in up to 4 business days, and Stripe "
+                     "refunds it in full only")
+    if TRANSFER in picked:
+        notes.append("a bank transfer: the invoice shows him an account and routing "
+                     "number to send a wire or an ACH credit to")
+    return notes
+
+
+def tags(offer: str, customer: str | None, pairs: list[str] | None) -> dict:
+    meta = {"offer": offer}
+    if customer:
+        meta["customer"] = customer
+    for kv in pairs or []:
+        k, _, v = kv.partition("=")
+        if k.strip() and v.strip():
+            meta[k.strip()] = v.strip()
+        else:
+            sys.exit(f"--meta expects KEY=VAL, got: {kv}")
+    return meta
 
 
 def _dirs(name: str, default: str) -> set[str]:
@@ -325,18 +382,16 @@ def cmd_check(args) -> int:
 
 
 def cmd_new(args) -> int:
-    cents = round(float(str(args.amount).replace(",", "").lstrip("$")) * 100)
+    cents = to_cents(args.amount)
     currency = os.environ.get("STRIPE_CURRENCY", "usd")
     label = args.label or f"Offer: {args.offer}"
-    meta = {"offer": args.offer}
-    if args.customer:
-        meta["customer"] = args.customer
-    for kv in args.meta or []:
-        k, _, v = kv.partition("=")
-        if k.strip() and v.strip():
-            meta[k.strip()] = v.strip()
-        else:
-            sys.exit(f"--meta expects KEY=VAL, got: {kv}")
+    meta = tags(args.offer, args.customer, args.meta)
+    picked = method_list(getattr(args, "methods", None))
+    if TRANSFER in picked:
+        sys.exit("A payment link cannot take a bank transfer. Run invoice instead: "
+                 "its page gives the buyer an account and routing number to send to.")
+    if args.hold and picked and picked != ["card"]:
+        sys.exit("A hold takes cards alone, so --hold carries no --methods but card.")
     plan, credited = [], None
     if args.credit_client:
         offer = args.credit_offer or credit_offer()
@@ -382,6 +437,9 @@ def cmd_new(args) -> int:
     if args.hold:
         plan.append("capture: a hold, cards only. Capture or cancel each payment "
                     "within 7 days, or Stripe cancels it")
+    if picked:
+        plan.append("payment methods: " + ", ".join(picked) + " only")
+        plan += method_notes(picked)
     if args.note:
         plan.append(f'beside the button: "{args.note}"')
     if credited:
@@ -414,6 +472,8 @@ def cmd_new(args) -> int:
     if args.hold:
         link_data["payment_intent_data[capture_method]"] = "manual"
         link_data["payment_method_types[0]"] = "card"
+    for i, m in enumerate(picked):
+        link_data[f"payment_method_types[{i}]"] = m
     if args.note:
         link_data["custom_text[submit][message]"] = args.note
     link = api("/payment_links", link_data)
@@ -425,6 +485,78 @@ def cmd_new(args) -> int:
             print(f"  {line}")
         print(f'  [Pay and begin]({link["url"]})')
     print("\nPaste that link into the offer doc, then run: check")
+    return 0
+
+
+def find_customer(email: str) -> dict | None:
+    found = api(f"/customers?{urllib.parse.urlencode({'email': email, 'limit': 1})}")["data"]
+    return found[0] if found else None
+
+
+def cmd_invoice(args) -> int:
+    cents = to_cents(args.amount)
+    currency = os.environ.get("STRIPE_CURRENCY", "usd")
+    label = args.label or f"Offer: {args.offer}"
+    meta = tags(args.offer, args.name, args.meta)
+    picked = method_list(args.methods) or method_list(INVOICE_METHODS)
+    plan = [
+        f"customer: {args.email}, found by email or created"
+        + (f" as {args.name}" if args.name else ""),
+        f'line: ${cents / 100:,.2f} {currency} ({label})',
+        "payment methods: " + ", ".join(picked),
+        *method_notes(picked),
+        f"due: {args.days_due} days after it goes out",
+        f"metadata: {meta}",
+        "then: Stripe emails it to him" if args.send else "then: print its page, for you to send",
+    ]
+    if args.memo:
+        plan.append(f'memo: "{args.memo}"')
+    if args.dry_run or not args.yes:
+        print("DRY RUN, would create:")
+        for line in plan:
+            print("  " + line)
+        if not args.yes:
+            print("\nNothing created. Re-run with --yes to create it live.")
+        return 0
+
+    customer = find_customer(args.email)
+    if customer is None:
+        data = {"email": args.email, **{f"metadata[{k}]": v for k, v in meta.items()}}
+        if args.name:
+            data["name"] = args.name
+        customer = api("/customers", data)
+    inv = {
+        "customer": customer["id"],
+        "collection_method": "send_invoice",
+        "days_until_due": args.days_due,
+        "auto_advance": "false",
+        "pending_invoice_items_behavior": "exclude",
+        **{f"metadata[{k}]": v for k, v in meta.items()},
+        **{f"payment_settings[payment_method_types][{i}]": m for i, m in enumerate(picked)},
+    }
+    if TRANSFER in picked:
+        opts = "payment_settings[payment_method_options][customer_balance]"
+        inv[f"{opts}[funding_type]"] = "bank_transfer"
+        inv[f"{opts}[bank_transfer][type]"] = "us_bank_transfer"
+    if args.memo:
+        inv["description"] = args.memo
+    invoice = api("/invoices", inv)
+    api("/invoiceitems", {
+        "customer": customer["id"],
+        "invoice": invoice["id"],
+        "amount": cents,
+        "currency": currency,
+        "description": label,
+        **{f"metadata[{k}]": v for k, v in meta.items()},
+    })
+    invoice = api(f'/invoices/{invoice["id"]}/finalize', {})
+    if args.send:
+        api(f'/invoices/{invoice["id"]}/send', {})
+    sent = " and emailed" if args.send else ""
+    print(f'CREATED  {args.offer}: invoice {invoice.get("number") or invoice["id"]}'
+          f' for {money(cents)}{sent}: {invoice["hosted_invoice_url"]}')
+    if not args.send:
+        print("\nSend him that page. It shows the transfer details, and Stripe marks it paid when the money lands.")
     return 0
 
 
@@ -528,9 +660,28 @@ def main() -> int:
                    help="hold the amount on the card and charge nothing until you capture it (cards only, 7 days)")
     n.add_argument("--note", metavar="TEXT",
                    help="a line beside the pay button (with --hold, what the hold becomes)")
+    n.add_argument("--methods", metavar="LIST",
+                   help="comma list the link takes, e.g. us_bank_account for a bank debit alone")
     n.add_argument("--dry-run", dest="dry_run", action="store_true")
     n.add_argument("--yes", action="store_true", help="create it live")
     n.set_defaults(func=cmd_new)
+
+    v = sub.add_parser("invoice", help="a Stripe invoice, with bank-transfer details for him")
+    v.add_argument("--offer", required=True)
+    v.add_argument("--amount", required=True, help="dollars, e.g. 30000")
+    v.add_argument("--email", required=True, help="the buyer's email, which finds or creates his customer")
+    v.add_argument("--name", help="the buyer's name, for a new customer")
+    v.add_argument("--label")
+    v.add_argument("--meta", action="append", metavar="KEY=VAL",
+                   help="extra metadata to tag the invoice, repeatable (e.g. --meta client=slug)")
+    v.add_argument("--methods", metavar="LIST", default=INVOICE_METHODS,
+                   help=f"comma list the invoice takes (default: {INVOICE_METHODS})")
+    v.add_argument("--days-due", dest="days_due", type=int, default=7)
+    v.add_argument("--memo", metavar="TEXT", help="a line on the invoice")
+    v.add_argument("--send", action="store_true", help="have Stripe email it as well")
+    v.add_argument("--dry-run", dest="dry_run", action="store_true")
+    v.add_argument("--yes", action="store_true", help="create it live")
+    v.set_defaults(func=cmd_invoice)
 
     x = sub.add_parser("close", help="deactivate an offer's links")
     x.add_argument("--offer", required=True)
