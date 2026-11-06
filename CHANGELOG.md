@@ -8,6 +8,13 @@ keys written onto a link (`offer`, `customer`, and any `--meta` you rely on). A
 adds capability; a **patch** fixes without touching the contract. Pre-1.0, the
 contract is not yet frozen, so expect the shape to move.
 
+## [0.8.0] - 2026-11-05
+
+### Added
+- `new --monthly` bills the amount every month until you cancel the subscription in the dashboard. The link carries its description and tags on the subscription, since Stripe refuses payment intent data on a recurring price.
+- `new --monthly --prepay N` charges N months at checkout and starts the monthly bill on day 30×N. Stripe holds those days as a free trial, so checkout shows them as one, and the dry run says so.
+- `new --terms TEXT` puts a required "I agree" box at checkout, with the text beside it. Markdown links work in the text.
+
 ## [0.7.0] - 2026-10-16
 
 ### Added

@@ -12,7 +12,12 @@ Your offer docs are the source of truth. Stripe follows them. Five commands:
           price that waits on a count. --note puts a line beside the pay
           button. --methods narrows what the link takes, so
           `--methods us_bank_account` is a link that takes a bank debit
-          alone. Dry-run first; a live create needs --yes.
+          alone. --monthly bills the amount every month until you cancel
+          the subscription in the dashboard, and --prepay N with it charges
+          N months at checkout and starts the monthly bill on day 30*N.
+          --terms puts a required "I agree" box at checkout, with its text
+          (markdown links work) beside it. Dry-run first; a live create
+          needs --yes.
 
   invoice Create a Stripe invoice for a payment a link cannot take, and
           print its page. By default the page gives the buyer an account and
@@ -84,6 +89,7 @@ Usage:
                      [--credit-client SLUG] [--credit-offer SLUG]
                      [--credit-window DAYS] [--credit-force]
                      [--hold] [--note TEXT] [--methods LIST]
+                     [--monthly [--prepay MONTHS]] [--terms TEXT]
                      [--dry-run | --yes]
   stripe_sync.py invoice --offer SLUG --amount DOLLARS --email EMAIL
                          [--name NAME] [--meta KEY=VAL ...] [--label TEXT]
@@ -369,9 +375,12 @@ def cmd_check(args) -> int:
                 drift += 1
             elif args.fix or args.fix_gated:
                 new_meta = {**meta, "offer": d["slug"]}
+                # A monthly link carries its tags on the subscription, and
+                # Stripe refuses payment_intent_data there.
+                carry = "subscription_data" if link.get("subscription_data") else "payment_intent_data"
                 api(f'/payment_links/{link["id"]}',
                     {**{f"metadata[{k}]": v for k, v in new_meta.items()},
-                     **{f"payment_intent_data[metadata][{k}]": v for k, v in new_meta.items()}})
+                     **{f"{carry}[metadata][{k}]": v for k, v in new_meta.items()}})
                 print(f'FIXED    {tag}: metadata offer -> {d["slug"]}')
             else:
                 print(f'METADATA {tag}: link metadata says offer={meta.get("offer") or "(none)"}')
@@ -392,6 +401,19 @@ def cmd_new(args) -> int:
                  "its page gives the buyer an account and routing number to send to.")
     if args.hold and picked and picked != ["card"]:
         sys.exit("A hold takes cards alone, so --hold carries no --methods but card.")
+    monthly = getattr(args, "monthly", False)
+    if monthly and args.hold:
+        sys.exit("A hold waits on one capture, and a monthly link charges every month, "
+                 "so --monthly carries no --hold.")
+    if monthly and args.credit_client:
+        sys.exit("A credit comes off one payment, and a monthly price would take it "
+                 "off every month, so --monthly carries no --credit-client.")
+    prepay = getattr(args, "prepay", None) or 0
+    if prepay and not monthly:
+        sys.exit("--prepay counts months paid ahead on a monthly bill, so it needs --monthly.")
+    if prepay < 0:
+        sys.exit("--prepay takes a number of months above zero.")
+    trial_days = 30 * prepay
     plan, credited = [], None
     if args.credit_client:
         offer = args.credit_offer or credit_offer()
@@ -420,8 +442,9 @@ def cmd_new(args) -> int:
         for r in take:
             plan.append(f'credit: {money(r["amount"])} from {r["id"]} paid {day(r["created"])}')
         plan.append(f'net: {money(gross)} gross - {money(credit)} credit = {money(cents)}')
+    per = "/month" if monthly else ""
     plan += [
-        f'price: ${cents / 100:,.2f} {currency} ({label})',
+        f'price: ${cents / 100:,.2f}{per} {currency} ({label})',
         f'payment link: metadata {meta}, description "{label}"',
     ]
     if args.redirect:
@@ -437,11 +460,23 @@ def cmd_new(args) -> int:
     if args.hold:
         plan.append("capture: a hold, cards only. Capture or cancel each payment "
                     "within 7 days, or Stripe cancels it")
+    if prepay:
+        plan.append(f"today: ${cents * prepay / 100:,.2f} for the first {prepay} months "
+                    f"({label}, first {prepay} months)")
+        plan.append(f"billing: ${cents / 100:,.2f} every month from day {trial_days}, until "
+                    "you cancel the subscription in the dashboard. Checkout shows those "
+                    f"{trial_days} days as a free trial, since that is how Stripe holds them")
+    elif monthly:
+        plan.append("billing: every month from the day he pays, until you cancel "
+                    "the subscription in the dashboard")
     if picked:
         plan.append("payment methods: " + ", ".join(picked) + " only")
         plan += method_notes(picked)
     if args.note:
         plan.append(f'beside the button: "{args.note}"')
+    terms = getattr(args, "terms", None)
+    if terms:
+        plan.append(f'required box at checkout: "{terms}"')
     if credited:
         plan.append("page copy: " + " ".join(credit_lines(credited["gross"], credited["taken"], cents)))
     if args.dry_run or not args.yes:
@@ -457,15 +492,35 @@ def cmd_new(args) -> int:
         price_data["product"] = os.environ["STRIPE_PRODUCT"]
     else:
         price_data["product_data[name]"] = label
+    if monthly:
+        price_data["recurring[interval]"] = "month"
     price = api("/prices", price_data)
+    ahead = None
+    if prepay:
+        ahead_data = {"unit_amount": cents * prepay, "currency": currency}
+        if os.environ.get("STRIPE_PRODUCT"):
+            ahead_data["product"] = os.environ["STRIPE_PRODUCT"]
+        else:
+            ahead_data["product_data[name]"] = f"{label}, first {prepay} months"
+        ahead = api("/prices", ahead_data)
 
+    # A recurring price makes the link a subscription, and Stripe refuses
+    # payment_intent_data there, so the label and the tags ride on the
+    # subscription instead.
+    carry = "subscription_data" if monthly else "payment_intent_data"
     link_data = {
         "line_items[0][price]": price["id"],
         "line_items[0][quantity]": 1,
-        "payment_intent_data[description]": label,
+        f"{carry}[description]": label,
         **{f"metadata[{k}]": v for k, v in meta.items()},
-        **{f"payment_intent_data[metadata][{k}]": v for k, v in meta.items()},
+        **{f"{carry}[metadata][{k}]": v for k, v in meta.items()},
     }
+    if ahead:
+        # The months paid ahead are a one-time line on the first invoice, and
+        # the monthly price waits behind a trial of the same length.
+        link_data["line_items[1][price]"] = ahead["id"]
+        link_data["line_items[1][quantity]"] = 1
+        link_data["subscription_data[trial_period_days]"] = trial_days
     if args.redirect:
         link_data["after_completion[type]"] = "redirect"
         link_data["after_completion[redirect][url]"] = args.redirect
@@ -476,9 +531,14 @@ def cmd_new(args) -> int:
         link_data[f"payment_method_types[{i}]"] = m
     if args.note:
         link_data["custom_text[submit][message]"] = args.note
+    if terms:
+        # He ticks the box to pay, so the terms are ones he met before paying.
+        link_data["consent_collection[terms_of_service]"] = "required"
+        link_data["custom_text[terms_of_service_acceptance][message]"] = terms
     link = api("/payment_links", link_data)
     held = " hold" if args.hold else ""
-    print(f'CREATED  {args.offer}: [${cents // 100:,}{held}]({link["url"]})')
+    shown = f"${cents * prepay // 100:,} then " if prepay else ""
+    print(f'CREATED  {args.offer}: [{shown}${cents // 100:,}{per}{held}]({link["url"]})')
     if credited:
         print("\nFor the page, above the button, so he reads the credit come off:\n")
         for line in credit_lines(credited["gross"], credited["taken"], cents):
@@ -662,6 +722,12 @@ def main() -> int:
                    help="a line beside the pay button (with --hold, what the hold becomes)")
     n.add_argument("--methods", metavar="LIST",
                    help="comma list the link takes, e.g. us_bank_account for a bank debit alone")
+    n.add_argument("--monthly", action="store_true",
+                   help="bill the amount every month until you cancel the subscription")
+    n.add_argument("--prepay", type=int, metavar="MONTHS",
+                   help="with --monthly, charge this many months at checkout and start the monthly bill after them")
+    n.add_argument("--terms", metavar="TEXT",
+                   help='a required "I agree" box at checkout, with TEXT beside it (markdown links work)')
     n.add_argument("--dry-run", dest="dry_run", action="store_true")
     n.add_argument("--yes", action="store_true", help="create it live")
     n.set_defaults(func=cmd_new)
